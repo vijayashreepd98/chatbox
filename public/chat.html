@@ -1,0 +1,63 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+        <h3 style="text-align: center;">CHAT BOX</h3> 
+        <h5 style="position: relative;left:10%;">USER LIST</h5>
+        <div id="container1" class="container"></div>
+        <form id="message_body">
+            <div class="input-group" style="width:600px;position: relative;left:30%;top:50%;">
+                <input type="text" class="form-control" placeholder="Type text here!!!!.." name="val" >
+                <div class="input-group-btn">
+                    <button class="btn btn-default" type="submit" style="background-color: aqua;" id="btn"><i class="glyphicon glyphicon-search" >SEND</i></button>
+                </div>
+            </div>
+        </form>
+	
+        <h5 style="position: relative;left:10%;">MESSAGE LIST</h5>
+        <div id="container" class="container"></div>
+        <script src = "/socket.io/socket.io.js"></script>
+        <script> let socket  = io();
+            let params = new URLSearchParams(window.location.search);
+            socket.on('message',(message) =>{
+            let h1 = document.createElement('h6');
+            h1.appendChild(document.createTextNode(message));
+            document.getElementById("container1").appendChild(h1).classList.add("list-group-item");          
+            });
+            let user = {username : params.get('username'),
+                room:params.get('room')
+            }
+            socket.emit('join',user);
+            document.querySelector("#message_body").addEventListener("submit",(e) =>{
+                e.preventDefault();
+                let message =  document.querySelector("input").value;
+                message_body ={
+                    message_value:message,
+                    username:params.get('username')
+                }
+                socket.emit('send_message',message_body);
+            });
+            socket.on('messages',(message) => {
+                let h1 = document.createElement('h6');
+                h1.appendChild(document.createTextNode("From:"+message.username+"\u00A0\u00A0 \u00A0 \u00A0 \u00A0 \u00A0 \u00A0 > "+message.message_value));
+                document.getElementById("container").appendChild(h1).classList.add("list-group-item");
+            });
+
+            socket.on("conformation",(message) =>{
+                console.log("delivered!!");
+            });
+            let message = user.username+" has left!!!!";
+            socket.emit('disconnect',message);
+        
+        </script>
+       
+    </body>
+</html>
+
+
