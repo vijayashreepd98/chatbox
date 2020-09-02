@@ -4,11 +4,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-    <script>
+    <script src = "/socket.io/socket.io.js"></script>  
+    <script>  
       function join() {
         let username = document.getElementById('username').value;
-        let room = document.getElementById('room').value;
+        
+        room = "global";
+        
         window.location.href="./chat.html?username="+username+"&room="+room;
+           
       }
     </script>
 
@@ -139,13 +143,12 @@ input[type=submit]:hover {
       <div class="col">        
         <label>Username</label>
         <input type="text" name="username" placeholder="Username" id="username" required>
-        <label>Room</label>
-        <input type="text" name="room" placeholder="Room" id="room" required>
+       
         <input type="submit" value="Login" name="submit" onclick="join()">
       </div>
     </div>
   </div>
-
+  
 </body>
 </html> 
 
