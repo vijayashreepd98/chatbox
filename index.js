@@ -4,6 +4,7 @@ let path = require('path');
 let socketio = require('socket.io');
 let bodyparser = require('body-parser');
 
+
 let port = process.env.PORT || 3000;
 
 let app = express();
@@ -11,6 +12,7 @@ let server = http.createServer(app);
 let publicDirectory = path.join(__dirname,'/public');
 let io = socketio(server);
 let newuser = [];
+let allmessage = [];
 io.on('connection', (socket) => {
     console.log('new websocket connection!!...');
     // when new user joins new connection will established
@@ -32,8 +34,11 @@ io.on('connection', (socket) => {
        
         //pushing new username into array
         newuser.push(socket.username);
-        
-        io.emit('newuser',newuser);
+        let newdetails = {
+            newuser :newuser,
+            allmessage:allmessage
+        }
+        io.emit('newuser',newdetails);
        
         socket.emit('message', 'welcome!!!'+user.username);
         let message =user.username+" has joined";
@@ -41,15 +46,44 @@ io.on('connection', (socket) => {
         
 
     });
+
+
     //for sending messsages to perticular client
     socket.on('send_message',(message) =>{
-    username=message.recipient;
+               
+        username=message.recipient;
+
+        allmessage.push(message);
+        let credential = {
+            message:message,
+            newuser:newuser,
+            allmessage:allmessage
+        
+        }
     //conforming message delivery to perticular client
-    socket.emit("conformation","delivred!!!...");
+        socket.emit("conformation","delivred!!!...");
     //  recipient recieving message sent by sender
-    socket.in(username).emit('messages',(message));
+        socket.in(username).emit('messages',(credential));
     //updating chat history in sender side
-    socket.emit('frommessage',message);
+    
+        socket.emit('frommessage',(credential));
+
+    });
+    socket.on('privatemessage',(currentuser) => {
+        socket.emit('messageupdate',currentuser);
+    });
+
+
+    socket.on('emit',(messages) => {
+        socket.emit('message','welcome!!!'+messages.message.username);
+    });
+
+    socket.on('homepage',(currentmessage)=>{
+        let newdetails = {
+            newuser :newuser,
+            allmessage:allmessage
+        }
+        io.emit('newuser',newdetails);
 
     });
     //diconnecting connection

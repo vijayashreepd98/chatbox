@@ -35,6 +35,20 @@
             width: 200px;
             height: 30px;;
         }
+        .private {
+            display:none;
+            position: relative;
+            top:-120%;
+            left:30%;
+
+            background-color: lightgrey;
+            width: 500px;
+            height: 350px;
+            border: 15px solid green;
+            padding: 50px;
+            margin: 20px;
+            overflow:scroll;
+        }
 
     </style>
 </head>
@@ -61,6 +75,9 @@
         </form>
 	
         <div id="container" class="container" style="position: relative;top:-60%;left:-20%;width:500px;height:350px;overflow:auto;"></div>
+        <div class="private" id ="private">
+            <h3 id="user" class="user" style="text-align: center;position: relative;top:-20%;"></h3>
+        </div>
         <script src = "/socket.io/socket.io.js"></script>
         <script> 
             let socket  = io();
@@ -71,91 +88,200 @@
                 alert(message);
                 window.location.href="/";
             });
-            //displaying user list
-            socket.on('newuser',(user) => {
-                let h1=" ";
-                let element =document.getElementById("container2");
-                element.textContent="";
-                for(let i =0;i<user.length;i++){
-                    h1 = document.createElement('li');
-                    h1.appendChild(document.createTextNode(user[i]));                                       
-                    document.getElementById("container2").appendChild(h1).classList.add("list-group-item"); 
-                }
-                   
-            });
-           //adding new user to user list
-            socket.on('userview',(userlist) => {
-                let h1=" ";
-                h1 = document.createElement('button');
-                h1.appendChild(document.createTextNode(userlist[userlist.length]));  
-                document.getElementById("container2").appendChild(h1).classList.add("list-group-item");         
-               
-            });
-            //greeting new user
-            socket.on('message',(message) =>{
-                let h1 = document.createElement('h6');
-                h1.appendChild(document.createTextNode(message));
-                document.getElementById("container1").appendChild(h1).classList.add("list-group-item");          
-            });
-            //notification to all existed user  about joing of new user
-            socket.on('newusermessage',(message) =>{
-                document.querySelector('.modal .modal-content .para ').innerHTML="<p>"+message+"</p>";
-                let modal = document.getElementById("myModal");
-                modal.style.display = "block";
-                setTimeout(function(){
-                    modal.style.display = "none";
-                }, 5000);
-                
-            });
-            // notification to all available users about leaving of perticular user
-            socket.on('userleft',(message) => {
-                document.querySelector('.modal .modal-content .para ').innerHTML="<p><strong>"+message+"</strong></p>";
-                let modal = document.getElementById("myModal");
-                modal.style.display = "block";
-                setTimeout(function(){
-                    modal.style.display = "none";
-                }, 5000);
-                               
-            });
             // getting users crendential from path specified in tab
             let user = {username : params.get('username'),
                 room:params.get('room')
             }
-            // when new user arrives then estabishing connection 
-            socket.emit('join',user);
-            document.querySelector("#message_body").addEventListener("submit",(e) =>{
-                e.preventDefault();
-                let recipient =  document.getElementById("recipient").value;
-                let message =  document.getElementById("message").value;
-                message_body ={
-                    message_value:message,
-                    username:params.get('username'),
-                    recipient: recipient,
+            //displaying user list
+            socket.on('newuser',(users) => {
+                let conversation = document.getElementById("private");
+                let h1=" ";
+                let element =document.getElementById("container2");
+                element.textContent="";
+                h5 = document.createElement('li');
+                h5.appendChild(document.createTextNode("YOU"));
+                document.getElementById("container2").appendChild(h5).classList.add("list-group-item");
+                for(let i =0;i<users.newuser.length;i++){
+                    h1 = document.createElement('li');
+                  
+                    if(users.newuser[i]==user.username){
+                        continue;
                     
+                    }else {
+                        h1.appendChild(document.createTextNode(users.newuser[i]));
+                    }                                       
+                    document.getElementById("container2").appendChild(h1).classList.add("list-group-item");
+                    h1.onclick = function(){
+                       
+                        var list = document.getElementById("container2");
+                        let text =list.getElementsByClassName("list-group-item")[i].textContent; 
+                        
+                        document.getElementById("recipient").value = users.newuser[i];
+                        document.querySelector('.private .user  ').innerHTML=users.newuser[i];
+                        let currentuser = {
+                            recipient :users.newuser[i],
+                            sender:user.username
+                        }
+                        private.style.display="block";
+
+                        for(let i=1;i<users.newuser.length;i++){
+                            
+                            let  list = document.getElementById("container2");
+
+                            list.getElementsByClassName("list-group-item")[i].onclick = function() {
+                            
+                                 
+                            
+                                let text =list.getElementsByClassName("list-group-item")[i].textContent;
+                            
+                                let lists = document.getElementById("private");
+                            
+                                while (lists.childNodes.length > 2) {
+                                    lists.removeChild(lists.lastChild);
+                                }
+                                document.getElementById("recipient").value = text;
+                           
+                           
+                                document.querySelector('.private .user  ').innerHTML=text;
+                                let texts = "";
+                                let count =0;
+                                for(let i=0;i<users.allmessage.length;i++){
+
+                                    if(users.allmessage[i].recipient==text&&user.username==users.allmessage[i].username){
+                                        count =count+1;
+                                        privatemessagerecipient(users.allmessage[i].message_value,users.allmessage[i].username,users.allmessage[i].recipient,count);
+                                                                                                               
+                                    }
+                                    else if(users.allmessage[i].username==text&&user.username == users.allmessage[i].recipient){
+                                        count=count+1;
+                                        privatemessagesender(users.allmessage[i].message_value,users.allmessage[i].username,users.allmessage[i].recipient,count);
+                                    }
+                                    else{
+                                        continue;
+                                    }
+                                }
+    
+                                function  privatemessagesender(currentnewmessage,sender,receiver,count){
+                                    let h3 = document.createElement('h6');
+                                    h3.appendChild(document.createTextNode(""+currentnewmessage));
+                                    document.getElementById("private").appendChild(h3).classList.add("list-group-item");
+                                    let obj = document.querySelectorAll('.private .list-group-item  ');
+                                    if(sender==user.username){
+                                        let currentEl = obj[count-1];
+                                        currentEl.style.backgroundColor= "yellow";
+
+                                    }else{
+                                        let currentEl = obj[count-1];
+                                        currentEl.style.backgroundColor= "skyblue";
+
+
+                                    }
+                                   
+                                }
+                                function privatemessagerecipient(currentnewmessage,sender,receiver,count) {
+                                    let h3 = document.createElement('h6');
+                                    h3.appendChild(document.createTextNode(""+currentnewmessage));
+                                    document.getElementById("private").appendChild(h3).classList.add("list-group-item");
+                                    let obj1 = document.querySelectorAll('.private .list-group-item  ');
+                                    if(receiver==user.username){
+                                        let currentEl = obj1[count-1];
+                                        currentEl.style.backgroundColor= "skyblue";
+
+                                    }else{
+                                        let currentEl = obj1[count-1];
+                                        currentEl.style.backgroundColor= "yellow"; 
+                                    }
+                                }
+                            private.style.display="block";
+                        }
+                    }
                 }
-                //sending message body to the server side
-                socket.emit('send_message',message_body);
-            });
-            //chat history  in receiver side
-            socket.on('messages',(message) => {
-                let h1 = document.createElement('h6');
-                h1.appendChild(document.createTextNode("From:"+message.username+"\u00A0\u00A0 \u00A0 \u00A0 \u00A0 \u00A0 \u00A0 > "+message.message_value));
-                document.getElementById("container").appendChild(h1).classList.add("list-group-item");
+                        
+            }
+                   
+        });
+
+        //adding new user to user list
+        socket.on('userview',(userlist) => {
+            let h1=" ";
+            h1 = document.createElement('button');
+            h1.appendChild(document.createTextNode(userlist[userlist.length]));  
+            document.getElementById("container2").appendChild(h1).classList.add("list-group-item");         
+               
+        });
+        //greeting new user
+        socket.on('message',(message) =>{
+            let h1 = document.createElement('h6');
+            h1.appendChild(document.createTextNode(message));
+            document.getElementById("container1").appendChild(h1).classList.add("list-group-item");          
+        });
+        //notification to all existed user  about joing of new user
+        socket.on('newusermessage',(message) =>{
+            document.querySelector('.modal .modal-content .para ').innerHTML="<p>"+message+"</p>";
+            let modal = document.getElementById("myModal");
+            modal.style.display = "block";
+            setTimeout(function(){
+                modal.style.display = "none";
+            }, 5000);
                 
-            });
-            //chat history in sender side
-            socket.on('frommessage',(message) =>{
-                let h2 = document.createElement('h6');
-                h2.appendChild(document.createTextNode("To:"+message.recipient+"\u00A0\u00A0 \u00A0 \u00A0 \u00A0 \u00A0 \u00A0 > "+message.message_value));
-                document.getElementById("container").appendChild(h2).classList.add("list-group-item");
-            });
-            //conformation of message delivery
-            socket.on("conformation",(message) =>{
-                alert("Message delivered successfully!!");
-            });
-            let message = user.username+" has left!!!!";
-            //call disconnecting connection
-            socket.emit('disconnect',message);
+        });
+        // notification to all available users about leaving of perticular user
+        socket.on('userleft',(message) => {
+            document.querySelector('.modal .modal-content .para ').innerHTML="<p><strong>"+message+"</strong></p>";
+            let modal = document.getElementById("myModal");
+            modal.style.display = "block";
+            setTimeout(function(){
+                modal.style.display = "none";
+            }, 5000);
+                               
+        });
+        let message_content =[];
+        // when new user arrives then estabishing connection 
+        socket.emit('join',user);
+        document.querySelector("#message_body").addEventListener("submit",(e) =>{
+            e.preventDefault();
+            let recipient =  document.getElementById("recipient").value;
+            let message =  document.getElementById("message").value;
+            document.getElementById("message").value =" ";
+            message_body ={
+                message_value:message,
+                username:params.get('username'),
+                recipient: recipient,
+            }
+
+            message_content.push(message_body);
+           
+            //sending message body to the server side
+            socket.emit('send_message',message_body);
+        });
+        //chat history  in receiver side
+        socket.on('messages',(messages) => {
+            alert("you got some new messages");
+            let h1 = document.createElement('h6');
+            h1.appendChild(document.createTextNode("From:"+messages.message.username+"\u00A0\u00A0 \u00A0 \u00A0 \u00A0 \u00A0 \u00A0 > "+messages.message.message_value));
+            document.getElementById("container").appendChild(h1).classList.add("list-group-item");
+            let list = document.getElementById("container2");
+            socket.emit('homepage',messages);
+                
+        });
+        //chat history in sender side
+        socket.on('frommessage',(messages) =>{
+            let h1 = document.createElement('h6');
+            h1.appendChild(document.createTextNode("To"+messages.message.recipient+"\u00A0\u00A0 \u00A0 \u00A0 \u00A0 \u00A0 \u00A0 > "+messages.message.message_value));
+            document.getElementById("container").appendChild(h1).classList.add("list-group-item");
+            let  list = document.getElementById("container2");
+            socket.emit('homepage',messages);
+             
+        });
+        //conformation of message delivery
+        socket.on("conformation",(message) =>{
+            alert("Message delivered successfully!!");
+            
+
+        });
+        let message = user.username+" has left!!!!";
+        //call disconnecting connection
+        socket.emit('disconnect',message);
             
 
         </script>
