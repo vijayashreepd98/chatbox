@@ -11,6 +11,7 @@ let app = express();
 let server = http.createServer(app);
 let publicDirectory = path.join(__dirname,'/public');
 let io = socketio(server);
+let groupio = io.of('/group');
 let newuser = [];
 let allmessage = [];
 io.on('connection', (socket) => {
@@ -39,9 +40,13 @@ io.on('connection', (socket) => {
             allmessage:allmessage
         }
         io.emit('newuser',newdetails);
-       
-        socket.emit('message', 'welcome!!!'+user.username);
+        let newinfo ={
+            message:'welcome!!!'+user.username,
+            newuser:newuser
+        }
+        socket.emit('message',newinfo );
         let message =user.username+" has joined";
+       
         socket.broadcast.to(user.room).emit('newusermessage',message);
         
 
@@ -101,8 +106,37 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('userleft',socket.username+" has left");
         // updating displaying userlist
         io.emit('newuser',newuser);
+    });//
+    socket.on("newgroup",(newgroup)=>{
+        for(let i=0;i<newgroup.members.length;i++){
+            socket.broadcast.to(newgroup.members[i]).emit('groupuser',newgroup);
+        }
+        socket.emit('groupuser',newgroup);
     });
+    
 });
+let allmessages=[];
+groupio.on('connection',(socket)=>{
+    console.log("connected to 2nd page");
+    socket.on('join',(group)=>{
+        socket.join(group.username);
+        socket.join(group.groupname);
+        socket.emit('permission',group);
+
+    });
+    
+    
+
+    socket.on("group_send_message",(message_body)=> {
+        allmessages.push(message_body);
+        socket.broadcast.emit('sendall',allmessages);
+        socket.emit('sendone',allmessages);
+    });
+
+
+});
+
+
 app.use(express.static(publicDirectory));
 app.use(express.urlencoded());
 app.use(express.json()); 

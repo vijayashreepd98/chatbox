@@ -49,11 +49,19 @@
             margin: 20px;
             overflow:scroll;
         }
+        #creategroup {
+            display: none;
+        }
+        #groupcontainer{
+            display: none;
+        }
 
     </style>
 </head>
     <body>
         <h3 style="text-align: center;">CHAT BOX</h3> 
+       
+
         <div id="myModal" class="modal" >
             <div class="modal-content"> 
                 <p class = "para"></p>
@@ -78,6 +86,41 @@
         <div class="private" id ="private">
             <h3 id="user" class="user" style="text-align: center;position: relative;top:-20%;"></h3>
         </div>
+        <div id ="creategroup">
+            <button id="button">CREATE GROUP</button>
+        </div>
+        <div class="groupcontainer" id="groupcontainer">
+            <h2 style="text-align: center;">CREATE GROUP</h2>
+     
+            <div class = "form-group">
+                <label for = "firstname" class = "col-sm-2 control-label">Group Name</label>
+                <div class = "col-sm-10">
+                    <input type = "text" class = "form-control" id = "groupname" placeholder = "Enter Group Name">
+                </div>
+            </div>
+            <div class = "form-group" id="member">                 
+                <div class="multiselect">
+                    <div class="selectBox" onclick="createcheckbox()">
+                       <select>
+                         <option>Select a member</option>
+                        </select>
+                        <div class="overSelect"></div>
+                    </div>
+                    <div id="checkboxes" class="checkbox">
+                       
+                    </div>
+                </div>          
+            </div>
+              
+            <div class = "form-group">
+                <div class = "col-sm-offset-2 col-sm-10">
+                    <button type = "submit" class = "btn btn-default" onclick="add()">Create Group</button>
+                </div>
+            </div>
+        </div>
+        <h3>ACTIVE GROUP</h3>
+            <div class ="join" id="join">
+            </div>
         <script src = "/socket.io/socket.io.js"></script>
         <script> 
             let socket  = io();
@@ -210,9 +253,22 @@
                
         });
         //greeting new user
-        socket.on('message',(message) =>{
+        let alluser =[];
+        socket.on('message',(messages) =>{
+            if(user.username=="admin"){
+                
+                let creategroup = document.getElementById('creategroup');
+                creategroup.style.display="block";
+                creategroup.onclick = function(){
+                    for(let i=0;i<messages.newuser.length;i++){
+                        alluser.push(messages.newuser[i]);
+                    }
+                   groupcontainer.style.display="block";
+                }
+
+            }
             let h1 = document.createElement('h6');
-            h1.appendChild(document.createTextNode(message));
+            h1.appendChild(document.createTextNode(messages.message));
             document.getElementById("container1").appendChild(h1).classList.add("list-group-item");          
         });
         //notification to all existed user  about joing of new user
@@ -254,9 +310,10 @@
             //sending message body to the server side
             socket.emit('send_message',message_body);
         });
+
         //chat history  in receiver side
         socket.on('messages',(messages) => {
-            alert("you got some new messages");
+            alert("you have some new messages");
             let h1 = document.createElement('h6');
             h1.appendChild(document.createTextNode("From:"+messages.message.username+"\u00A0\u00A0 \u00A0 \u00A0 \u00A0 \u00A0 \u00A0 > "+messages.message.message_value));
             document.getElementById("container").appendChild(h1).classList.add("list-group-item");
@@ -282,11 +339,87 @@
         let message = user.username+" has left!!!!";
         //call disconnecting connection
         socket.emit('disconnect',message);
-            
+        let j=1;
+        let expanded = false;
+        function createcheckbox(){
+            let lists= document.querySelector('.form-group .multiselect .checkbox');
+            while (lists.childNodes.length > 1) {
+                lists.removeChild(lists.lastChild);
+            }
+            if (!expanded) {
+                checkboxes.style.display = "block";
+                expanded = true;
+            } else {
+                checkboxes.style.display = "none";
+                expanded = false;
+            }
 
-        </script>
+            let user = alluser.splice(",");
        
-    </body>
+            for(let i=0;i<user.length;i++){
+
+                let chk = document.createElement('input');  // CREATE CHECK BOX.
+                chk.setAttribute('type', 'checkbox');       // SPECIFY THE TYPE OF ELEMENT.
+                chk.setAttribute('id', 'memberName' + j);     // SET UNIQUE ID.
+                chk.setAttribute('value', user[i]);
+                chk.setAttribute('name', 'member');
+
+                let lbl = document.createElement('label');  // CREATE LABEL.
+                lbl.setAttribute('for', 'memberName' + j);
+            
+                // CREATE A TEXT NODE AND APPEND IT TO THE LABEL.
+                lbl.appendChild(document.createTextNode(user[i]));
+                if(user[i]=="admin"){
+                    chk.setAttribute('checked',true);
+                }
+                j++;
+                let br = document.createElement("br");
+            
+                let container= document.querySelector('.form-group .multiselect .checkbox');
+                container.appendChild(chk);
+                container.appendChild(lbl);
+                container.appendChild(br);
+
+            }
+            
+        }
+        function add() {
+            let groupname =document.getElementById('groupname').value;                    
+            let member = [] ;
+            $. each($("input[name='member']:checked"), function(){
+                member.push($(this). val());
+            }); 
+            if(groupname == " "||member.length == 0){
+                alert("Please fill the details!!!");
+            } else {
+                let groupdetails ={
+                    groupname :groupname,
+                    members:member
+                }
+                alert("you created group successfully");
+                socket.emit('newgroup',groupdetails);
+            }
+        }  
+          
+        socket.on('groupuser',(thisuser)=>{
+            let h1 = document.createElement("label");
+            h1.appendChild(document.createTextNode(thisuser.groupname));
+            document.getElementById("join").appendChild(h1).classList.add("list-group-item");
+            let list = document.getElementById("join");
+            let count = list.childNodes.length;
+            for(let i=0; i<count; i++) {
+                list.getElementsByClassName("list-group-item")[i].onclick = function() {
+                    let text =list.getElementsByClassName("list-group-item")[i].textContent;
+                    window.location.href = "./group.html?group="+text+"&users="+thisuser.members+"&username="+user.username;
+                }
+           }
+           
+        });
+
+
+    </script>
+       
+</body>
 </html>
 
 
